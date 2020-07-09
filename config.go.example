@@ -1,0 +1,8 @@
+package main
+
+const (
+	TOKEN  = "MY_TOKEN"
+	API    = "ws://localhost:6700"
+	SECRET = "MY_SECRET"
+	DEBUG  = false
+)
