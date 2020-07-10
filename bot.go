@@ -44,10 +44,13 @@ func (bot *Bot) processUpdate(update *qqbotapi.Update) {
 
 		cmd, _ := msg.Command()
 		if cmd == "/复读" {
-			bot.handleFuDu(msg)
+			bot.handleRepeat(msg)
 		}
 		if cmd == "/ping" {
 			bot.handlePing(msg)
+		}
+		if cmd == "/查线" {
+			bot.handleClanLine(msg)
 		}
 	}
 }
