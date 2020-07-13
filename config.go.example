@@ -1,8 +1,26 @@
 package main
 
+// 酷Q配置
 const (
-	TOKEN  = "MY_TOKEN"
-	API    = "ws://localhost:6700"
-	SECRET = "MY_SECRET"
-	DEBUG  = false
+	CQTOKEN  = "MY_TOKEN"
+	CQAPI    = "ws://localhost:6700"
+	CQSECRET = "MY_SECRET"
+)
+
+// Redis数据库连接配置
+const (
+	DBADDR     = "localhost:6379"
+	DBPASSWORD = ""
+	DBDB       = 0
+)
+
+const (
+	ALLOWGROUP int64 = 00000000
+	DEBUG            = true
+	HELPSTRING       = `/help or /帮助  -显示本帮助
+/复读 [参数]  -复读指定内容
+/ping  -PONG!
+/查线  -查询实时档线
+/查公会 [参数] 按行会名及会长名查询行会
+/查排名 [参数] 按排名查询行会`
 )

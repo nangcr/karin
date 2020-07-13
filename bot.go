@@ -5,16 +5,32 @@ import (
 	"strings"
 
 	"github.com/catsworld/qq-bot-api"
+	"github.com/go-redis/redis/v8"
+	kyokatentacle "github.com/nangcr/kyoka-tentacle"
 )
 
-type Bot struct {
-	api     *qqbotapi.BotAPI
-	updates <-chan qqbotapi.Update
+var kyoka *kyokatentacle.API
+
+func init() {
+	var err error
+	kyoka, err = kyokatentacle.NewAPI()
+	if err != nil {
+		checkError(err)
+	}
 }
 
-func NewBot(api *qqbotapi.BotAPI) (bot *Bot, err error) {
+type Bot struct {
+	api        *qqbotapi.BotAPI
+	db         *redis.Client
+	allowGroup int64
+	updates    <-chan qqbotapi.Update
+}
+
+func NewBot(api *qqbotapi.BotAPI, db *redis.Client, allowGroup int64) (bot *Bot, err error) {
 	bot = &Bot{
-		api: api,
+		api:        api,
+		db:         db,
+		allowGroup: allowGroup,
 	}
 
 	u := qqbotapi.NewUpdate(0)
@@ -39,10 +55,13 @@ func (bot *Bot) processUpdate(update *qqbotapi.Update) {
 	}()
 
 	msg := update.Message
-	if msg != nil && strings.HasPrefix(msg.Text, "/") {
+	if msg != nil && (msg.Chat.IsPrivate() || (msg.Chat.IsGroup() && msg.Chat.ID == bot.allowGroup)) && strings.HasPrefix(msg.Text, "/") {
 		log.Printf("[%s] %s", msg.From.String(), msg.Text)
 
 		cmd, _ := msg.Command()
+		if cmd == "/帮助" || cmd == "/help" {
+			bot.handleHelp(msg)
+		}
 		if cmd == "/复读" {
 			bot.handleRepeat(msg)
 		}
@@ -51,6 +70,12 @@ func (bot *Bot) processUpdate(update *qqbotapi.Update) {
 		}
 		if cmd == "/查线" {
 			bot.handleClanLine(msg)
+		}
+		if cmd == "/查公会" {
+			bot.handleClanSearch(msg)
+		}
+		if cmd == "/查排名" {
+			bot.handleRankSearch(msg)
 		}
 	}
 }

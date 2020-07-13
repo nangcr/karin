@@ -1,25 +1,37 @@
 package main
 
 import (
-	"flag"
+	"context"
 	"log"
 
 	"github.com/catsworld/qq-bot-api"
+	"github.com/go-redis/redis/v8"
 )
 
-func main() {
-	token := flag.String("token", TOKEN, "CoolQ token")
-	api := flag.String("api", API, "CoolQ address and port")
-	secret := flag.String("secret", SECRET, "CoolQ http secret")
-	flag.Parse()
+var ctx = context.Background()
 
-	botapi, err := qqbotapi.NewBotAPI(*token, *api, *secret)
+func main() {
+	if DEBUG {
+		log.Println("The program is running in debug mode")
+	}
+
+	db := redis.NewClient(&redis.Options{
+		Addr:     DBADDR,
+		Password: DBPASSWORD,
+		DB:       DBDB,
+	})
+	_, err := db.Ping(ctx).Result()
 	checkError(err)
-	botapi.Debug = DEBUG
+
+	log.Println("Database connected")
+
+	botAPI, err := qqbotapi.NewBotAPI(CQTOKEN, CQAPI, CQSECRET)
+	checkError(err)
+	botAPI.Debug = DEBUG
 
 	log.Println("Bot API connected")
 
-	bot, err := NewBot(botapi)
+	bot, err := NewBot(botAPI, db, ALLOWGROUP)
 	checkError(err)
 
 	log.Println("Controller initialized.")
