@@ -68,6 +68,12 @@ func (bot *Bot) processUpdate(update *qqbotapi.Update) {
 		if cmd == "/ping" {
 			bot.handlePing(msg)
 		}
+		if cmd == "/存轴" {
+			bot.handleTimelineSave(msg)
+		}
+		if cmd == "/查轴" {
+			bot.handleTimelineSearch(msg)
+		}
 		if cmd == "/查线" {
 			go func() {
 				defer func() {
@@ -104,5 +110,21 @@ func (bot *Bot) processUpdate(update *qqbotapi.Update) {
 func (bot *Bot) sendMessages(chatID int64, chatType string, message interface{}) (err error) {
 	_, err = bot.api.SendMessage(chatID, chatType, message)
 
+	return
+}
+
+func (bot *Bot) saveData(tag, key string, value interface{}) (err error) {
+	err = bot.db.Set(ctx, tag+key, value, 0).Err()
+
+	return
+}
+
+func (bot *Bot) readData(tag, key string) (result string, err error) {
+	result, err = bot.db.Get(ctx, tag+":"+key).Result()
+	return
+}
+
+func (bot *Bot) searchData(tag string) (result []string, err error) {
+	result, err = bot.db.Keys(ctx, tag+":*").Result()
 	return
 }
