@@ -17,7 +17,7 @@ func (bot *Bot) handleHelp(msg *qqbotapi.Message) {
 		log.Panic(err)
 	}
 
-	err = bot.SendMessages(msg.Chat.ID, msg.Chat.Type, message)
+	err = bot.sendMessages(msg.Chat.ID, msg.Chat.Type, message)
 	if err != nil {
 		log.Panic(err)
 	}
@@ -25,12 +25,14 @@ func (bot *Bot) handleHelp(msg *qqbotapi.Message) {
 
 func (bot *Bot) handleRepeat(msg *qqbotapi.Message) {
 	message := cqcode.NewMessage()
-	_, args := msg.Command()
-	err := message.Append(&cqcode.Text{Text: strings.Join(args, "")})
+	cmd, _ := msg.Command()
+	str := strings.TrimLeft(msg.Text, cmd)
+	str = strings.TrimSpace(str)
+	err := message.Append(&cqcode.Text{Text: str})
 	if err != nil {
 		log.Panic(err)
 	}
-	err = bot.SendMessages(msg.Chat.ID, msg.Chat.Type, message)
+	err = bot.sendMessages(msg.Chat.ID, msg.Chat.Type, message)
 	if err != nil {
 		log.Panic(err)
 	}
@@ -48,7 +50,7 @@ func (bot *Bot) handlePing(msg *qqbotapi.Message) {
 		log.Panic(err)
 	}
 
-	err = bot.SendMessages(msg.Chat.ID, msg.Chat.Type, message)
+	err = bot.sendMessages(msg.Chat.ID, msg.Chat.Type, message)
 	if err != nil {
 		log.Panic(err)
 	}
@@ -72,17 +74,14 @@ func (bot *Bot) handleClanLine(msg *qqbotapi.Message) {
 		if err != nil {
 			log.Panic(err)
 		}
-
-		if v.Rank == 10000 {
-			err := message.Append(&cqcode.Text{Text: "\n更新时间 " + updateTime.Format("2006-01-02 15:04:05")})
-			if err != nil {
-				log.Panic(err)
-			}
-			break
-		}
 	}
 
-	err = bot.SendMessages(msg.Chat.ID, msg.Chat.Type, message)
+	err = message.Append(&cqcode.Text{Text: "\n更新时间 " + updateTime.Format("2006-01-02 15:04:05")})
+	if err != nil {
+		log.Panic(err)
+	}
+
+	err = bot.sendMessages(msg.Chat.ID, msg.Chat.Type, message)
 	if err != nil {
 		log.Panic(err)
 	}
@@ -120,7 +119,7 @@ func (bot *Bot) handleClanSearch(msg *qqbotapi.Message) {
 		log.Panic(err)
 	}
 
-	err = bot.SendMessages(msg.Chat.ID, msg.Chat.Type, message)
+	err = bot.sendMessages(msg.Chat.ID, msg.Chat.Type, message)
 	if err != nil {
 		log.Panic(err)
 	}
@@ -155,7 +154,7 @@ func (bot *Bot) handleRankSearch(msg *qqbotapi.Message) {
 		log.Panic(err)
 	}
 
-	err = bot.SendMessages(msg.Chat.ID, msg.Chat.Type, message)
+	err = bot.sendMessages(msg.Chat.ID, msg.Chat.Type, message)
 	if err != nil {
 		log.Panic(err)
 	}

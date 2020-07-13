@@ -6,7 +6,7 @@ import (
 
 	"github.com/catsworld/qq-bot-api"
 	"github.com/go-redis/redis/v8"
-	kyokatentacle "github.com/nangcr/kyoka-tentacle"
+	"github.com/nangcr/kyoka-tentacle"
 )
 
 var kyoka *kyokatentacle.API
@@ -69,19 +69,40 @@ func (bot *Bot) processUpdate(update *qqbotapi.Update) {
 			bot.handlePing(msg)
 		}
 		if cmd == "/查线" {
-			bot.handleClanLine(msg)
+			go func() {
+				defer func() {
+					if r := recover(); r != nil {
+						log.Printf("Fatal: %+v\n", r)
+					}
+				}()
+				bot.handleClanLine(msg)
+			}()
 		}
 		if cmd == "/查公会" {
-			bot.handleClanSearch(msg)
+			go func() {
+				defer func() {
+					if r := recover(); r != nil {
+						log.Printf("Fatal: %+v\n", r)
+					}
+				}()
+				bot.handleClanSearch(msg)
+			}()
 		}
 		if cmd == "/查排名" {
-			bot.handleRankSearch(msg)
+			go func() {
+				defer func() {
+					if r := recover(); r != nil {
+						log.Printf("Fatal: %+v\n", r)
+					}
+				}()
+				bot.handleRankSearch(msg)
+			}()
 		}
 	}
 }
 
-func (bot *Bot) SendMessages(chatId int64, chatType string, message interface{}) (err error) {
-	_, err = bot.api.SendMessage(chatId, chatType, message)
+func (bot *Bot) sendMessages(chatID int64, chatType string, message interface{}) (err error) {
+	_, err = bot.api.SendMessage(chatID, chatType, message)
 
 	return
 }
