@@ -64,6 +64,7 @@ func (bot *Bot) handleTimelineSave(msg *qqbotapi.Message) {
 	text := strings.TrimLeft(msg.Text, cmd)
 	text = strings.TrimSpace(text)
 	key := strings.Split(text, "\r\n")[0]
+	key = strings.TrimSpace(key)
 	suffix := fmt.Sprintf("\n由%s上传，上传时间 %s", msg.From.Name(), time.Now().Format("2006-01-02 15:04:05"))
 
 	err := bot.saveData(tag, key, text+suffix)
@@ -89,6 +90,7 @@ func (bot *Bot) handleTimelineSearch(msg *qqbotapi.Message) {
 	text := strings.TrimLeft(msg.Text, cmd)
 	text = strings.TrimSpace(text)
 	key := strings.Split(text, "\r\n")[0]
+	key = strings.TrimSpace(key)
 	var result string
 	var err error
 
@@ -127,6 +129,7 @@ func (bot *Bot) handleTimelineDelete(msg *qqbotapi.Message) {
 	text := strings.TrimLeft(msg.Text, cmd)
 	text = strings.TrimSpace(text)
 	key := strings.Split(text, "\r\n")[0]
+	key = strings.TrimSpace(key)
 	var result string
 
 	if key == "" {
