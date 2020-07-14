@@ -85,26 +85,74 @@ func (bot *Bot) handleTimelineSave(msg *qqbotapi.Message) {
 
 func (bot *Bot) handleTimelineSearch(msg *qqbotapi.Message) {
 	tag := "timeline"
-	_, args := msg.Command()
-	var key, result string
+	cmd, _ := msg.Command()
+	text := strings.TrimLeft(msg.Text, cmd)
+	text = strings.TrimSpace(text)
+	key := strings.Split(text, "\r\n")[0]
+	var result string
 	var err error
 
-	if args == nil {
+	if key == "" {
 		var data []string
-		data, err = bot.searchData(tag)
+		data, err := bot.searchData(tag)
+		if err != nil {
+			log.Panic(err)
+		}
+
 		sort.Strings(data)
 		result = strings.Join(data, "\n")
 		result = strings.Replace(result, tag+":", "", -1)
 	} else {
-		key = args[0]
 		result, err = bot.readData(tag, key)
 		if err != nil {
-			log.Panic(err)
+			result = "未找到" + key
 		}
 	}
 
 	message := cqcode.NewMessage()
 	err = message.Append(&cqcode.Text{Text: result})
+	if err != nil {
+		log.Panic(err)
+	}
+
+	err = bot.sendMessages(msg.Chat.ID, msg.Chat.Type, message)
+	if err != nil {
+		log.Panic(err)
+	}
+}
+
+func (bot *Bot) handleTimelineDelete(msg *qqbotapi.Message) {
+	tag := "timeline"
+	cmd, _ := msg.Command()
+	text := strings.TrimLeft(msg.Text, cmd)
+	text = strings.TrimSpace(text)
+	key := strings.Split(text, "\r\n")[0]
+	var result string
+
+	if key == "" {
+		data, err := bot.searchData(tag)
+		if err != nil {
+			log.Panic(err)
+		}
+
+		sort.Strings(data)
+		result = strings.Join(data, "\n")
+		result = strings.Replace(result, tag+":", "", -1)
+	} else {
+		ok, err := bot.deleteData(tag, key)
+		if err != nil {
+			log.Panic(err)
+		}
+
+		if ok == 1 {
+			result = key + "删除成功"
+		} else {
+			result = "未找到" + key
+		}
+	}
+
+	message := cqcode.NewMessage()
+	err := message.Append(&cqcode.Text{Text: result})
 	if err != nil {
 		log.Panic(err)
 	}
@@ -125,13 +173,13 @@ func (bot *Bot) handleClanLine(msg *qqbotapi.Message) {
 
 	for _, v := range line {
 		str := fmt.Sprintf("第%d名 %s 分数 %d", v.Rank, v.ClanName, v.Damage)
-		err = message.Append(&cqcode.Text{Text: "\n" + str})
+		err = message.Append(&cqcode.Text{Text: str + "\n"})
 		if err != nil {
 			log.Panic(err)
 		}
 	}
 
-	err = message.Append(&cqcode.Text{Text: "\n更新时间 " + updateTime.Format("2006-01-02 15:04:05")})
+	err = message.Append(&cqcode.Text{Text: "更新时间 " + updateTime.Format("2006-01-02 15:04:05")})
 	if err != nil {
 		log.Panic(err)
 	}
@@ -160,12 +208,12 @@ func (bot *Bot) handleClanSearch(msg *qqbotapi.Message) {
 
 	for _, v := range clans {
 		str := fmt.Sprintf("第%d名 %s 会长 %s 分数 %d", v.Rank, v.ClanName, v.LeaderName, v.Damage)
-		err = message.Append(&cqcode.Text{Text: "\n" + str})
+		err = message.Append(&cqcode.Text{Text: str + "\n"})
 		if err != nil {
 			log.Panic(err)
 		}
 	}
-	err = message.Append(&cqcode.Text{Text: "\n更新时间 " + updateTime.Format("2006-01-02 15:04:05")})
+	err = message.Append(&cqcode.Text{Text: "更新时间 " + updateTime.Format("2006-01-02 15:04:05")})
 	if err != nil {
 		log.Panic(err)
 	}
@@ -191,12 +239,12 @@ func (bot *Bot) handleRankSearch(msg *qqbotapi.Message) {
 	message := cqcode.NewMessage()
 
 	str := fmt.Sprintf("第%d名 %s 会长 %s 分数 %d", clan.Rank, clan.ClanName, clan.LeaderName, clan.Damage)
-	err = message.Append(&cqcode.Text{Text: "\n" + str})
+	err = message.Append(&cqcode.Text{Text: str + "\n"})
 	if err != nil {
 		log.Panic(err)
 	}
 
-	err = message.Append(&cqcode.Text{Text: "\n更新时间 " + updateTime.Format("2006-01-02 15:04:05")})
+	err = message.Append(&cqcode.Text{Text: "更新时间 " + updateTime.Format("2006-01-02 15:04:05")})
 	if err != nil {
 		log.Panic(err)
 	}
