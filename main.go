@@ -1,16 +1,29 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"log"
+	"os"
 
 	"github.com/catsworld/qq-bot-api"
+	"github.com/dimiro1/banner"
 	"github.com/go-redis/redis/v8"
 )
 
 var ctx = context.Background()
 
 func main() {
+
+	banner.Init(os.Stdout, true, true, bytes.NewBufferString(`  _  __                 _         
+ | |/ /                (_)        
+ | ' /    __ _   _ __   _   _ __  
+ |  <    / _`+"`"+` | | '__| | | | '_ \ 
+ | . \  | (_| | | |    | | | | | |
+ |_|\_\  \__,_| |_|    |_| |_| |_|
+
+`))
+
 	if DEBUG {
 		log.Println("The program is running in debug mode")
 	}
