@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"math/rand"
 	"sort"
 	"strconv"
 	"strings"
@@ -19,7 +20,7 @@ func (bot *Bot) handleHelp(msg *qqbotapi.Message) {
 		log.Panic(err)
 	}
 
-	err = bot.sendMessages(msg.Chat.ID, msg.Chat.Type, message)
+	_, err = bot.api.SendMessage(msg.Chat.ID, msg.Chat.Type, message)
 	if err != nil {
 		log.Panic(err)
 	}
@@ -34,7 +35,7 @@ func (bot *Bot) handleRepeat(msg *qqbotapi.Message) {
 	if err != nil {
 		log.Panic(err)
 	}
-	err = bot.sendMessages(msg.Chat.ID, msg.Chat.Type, message)
+	_, err = bot.api.SendMessage(msg.Chat.ID, msg.Chat.Type, message)
 	if err != nil {
 		log.Panic(err)
 	}
@@ -46,13 +47,17 @@ func (bot *Bot) handlePing(msg *qqbotapi.Message) {
 	if err != nil {
 		log.Panic(err)
 	}
-
-	err = message.Append(&cqcode.Text{Text: "Pong!"})
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	if r.Intn(10) == 0 {
+		err = message.Append(&cqcode.Text{Text: "pia!"})
+	} else {
+		err = message.Append(&cqcode.Text{Text: "pong!"})
+	}
 	if err != nil {
 		log.Panic(err)
 	}
 
-	err = bot.sendMessages(msg.Chat.ID, msg.Chat.Type, message)
+	_, err = bot.api.SendMessage(msg.Chat.ID, msg.Chat.Type, message)
 	if err != nil {
 		log.Panic(err)
 	}
@@ -63,7 +68,7 @@ func (bot *Bot) handleTimelineSave(msg *qqbotapi.Message) {
 	cmd, _ := msg.Command()
 	text := strings.TrimLeft(msg.Text, cmd)
 	text = strings.TrimSpace(text)
-	key := strings.Split(text, "\r\n")[0]
+	key := strings.Split(text, "\n")[0]
 	key = strings.TrimSpace(key)
 	suffix := fmt.Sprintf("\n由%s上传，上传时间 %s", msg.From.Name(), time.Now().Format("2006-01-02 15:04:05"))
 
@@ -78,7 +83,7 @@ func (bot *Bot) handleTimelineSave(msg *qqbotapi.Message) {
 		log.Panic(err)
 	}
 
-	err = bot.sendMessages(msg.Chat.ID, msg.Chat.Type, message)
+	_, err = bot.api.SendMessage(msg.Chat.ID, msg.Chat.Type, message)
 	if err != nil {
 		log.Panic(err)
 	}
@@ -89,7 +94,7 @@ func (bot *Bot) handleTimelineSearch(msg *qqbotapi.Message) {
 	cmd, _ := msg.Command()
 	text := strings.TrimLeft(msg.Text, cmd)
 	text = strings.TrimSpace(text)
-	key := strings.Split(text, "\r\n")[0]
+	key := strings.Split(text, "\n")[0]
 	key = strings.TrimSpace(key)
 	var result string
 	var err error
@@ -104,10 +109,11 @@ func (bot *Bot) handleTimelineSearch(msg *qqbotapi.Message) {
 		sort.Strings(data)
 		result = strings.Join(data, "\n")
 		result = strings.Replace(result, tag+":", "", -1)
+		result = "为您找到以下轴\n" + result
 	} else {
 		result, err = bot.readData(tag, key)
 		if err != nil {
-			result = "未找到" + key
+			result = "未找到 " + key
 		}
 	}
 
@@ -117,7 +123,7 @@ func (bot *Bot) handleTimelineSearch(msg *qqbotapi.Message) {
 		log.Panic(err)
 	}
 
-	err = bot.sendMessages(msg.Chat.ID, msg.Chat.Type, message)
+	_, err = bot.api.SendMessage(msg.Chat.ID, msg.Chat.Type, message)
 	if err != nil {
 		log.Panic(err)
 	}
@@ -128,7 +134,7 @@ func (bot *Bot) handleTimelineDelete(msg *qqbotapi.Message) {
 	cmd, _ := msg.Command()
 	text := strings.TrimLeft(msg.Text, cmd)
 	text = strings.TrimSpace(text)
-	key := strings.Split(text, "\r\n")[0]
+	key := strings.Split(text, "\n")[0]
 	key = strings.TrimSpace(key)
 	var result string
 
@@ -148,9 +154,9 @@ func (bot *Bot) handleTimelineDelete(msg *qqbotapi.Message) {
 		}
 
 		if ok == 1 {
-			result = key + "删除成功"
+			result = key + " 删除成功"
 		} else {
-			result = "未找到" + key
+			result = "未找到 " + key
 		}
 	}
 
@@ -160,99 +166,64 @@ func (bot *Bot) handleTimelineDelete(msg *qqbotapi.Message) {
 		log.Panic(err)
 	}
 
-	err = bot.sendMessages(msg.Chat.ID, msg.Chat.Type, message)
+	_, err = bot.api.SendMessage(msg.Chat.ID, msg.Chat.Type, message)
 	if err != nil {
 		log.Panic(err)
 	}
 }
 
-func (bot *Bot) handleClanLine(msg *qqbotapi.Message) {
-	line, updateTime, err := kyoka.GetLine()
+func (bot *Bot) handleReplyString(msg *qqbotapi.Message, reply string) {
+	message := cqcode.NewMessage()
+	err := message.Append(&cqcode.Text{Text: reply})
 	if err != nil {
 		log.Panic(err)
 	}
 
-	message := cqcode.NewMessage()
+	_, err = bot.api.SendMessage(msg.Chat.ID, msg.Chat.Type, message)
+	if err != nil {
+		log.Panic(err)
+	}
+}
 
-	for _, v := range line {
-		str := fmt.Sprintf("第%d名 %s 分数 %d", v.Rank, v.ClanName, v.Damage)
-		err = message.Append(&cqcode.Text{Text: str + "\n"})
+func (bot *Bot) handleDamage(msg *qqbotapi.Message, potency int) {
+	message := cqcode.NewMessage()
+	crit := false
+	direct := false
+
+	if potency>2000 && msg.From.ID != 2787019693 && msg.From.ID != 1658873149{
+		message.Append(&cqcode.Text{Text: "不许崩石"})
+		_, err := bot.api.SendMessage(msg.Chat.ID, msg.Chat.Type, message)
 		if err != nil {
 			log.Panic(err)
 		}
+		return
 	}
 
-	err = message.Append(&cqcode.Text{Text: "更新时间 " + updateTime.Format("2006-01-02 15:04:05")})
-	if err != nil {
-		log.Panic(err)
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+
+	damage := float64(potency) * 83.3
+	if r.Intn(100) < 34 {
+		crit = true
+		damage *= 1.63
 	}
 
-	err = bot.sendMessages(msg.Chat.ID, msg.Chat.Type, message)
-	if err != nil {
-		log.Panic(err)
+	if r.Intn(100) < 13 {
+		direct = true
+		damage *= 1.25
 	}
-}
+	damage += damage * float64(r.Intn(50)-24) / 1000
 
-func (bot *Bot) handleClanSearch(msg *qqbotapi.Message) {
-	_, args := msg.Command()
-	clans, updateTime, _, err := kyoka.GetByName(args[0], 0)
-	if err != nil {
-		log.Panic(err)
-	}
-
-	clans2, _, _, err := kyoka.GetByLeader(args[0], 0)
-	if err != nil {
-		log.Panic(err)
+	if crit && direct {
+		message.Append(&cqcode.Text{Text: fmt.Sprintf("直击加暴击！木人受到了%d点伤害", int(damage))})
+	} else if crit {
+		message.Append(&cqcode.Text{Text: fmt.Sprintf("暴击！木人受到了%d点伤害", int(damage))})
+	} else if direct {
+		message.Append(&cqcode.Text{Text: fmt.Sprintf("直击！木人受到了%d点伤害", int(damage))})
+	} else {
+		message.Append(&cqcode.Text{Text: fmt.Sprintf("木人受到了%d点伤害", int(damage))})
 	}
 
-	clans = append(clans, clans2...)
-
-	message := cqcode.NewMessage()
-
-	for _, v := range clans {
-		str := fmt.Sprintf("第%d名 %s 会长 %s 分数 %d", v.Rank, v.ClanName, v.LeaderName, v.Damage)
-		err = message.Append(&cqcode.Text{Text: str + "\n"})
-		if err != nil {
-			log.Panic(err)
-		}
-	}
-	err = message.Append(&cqcode.Text{Text: "更新时间 " + updateTime.Format("2006-01-02 15:04:05")})
-	if err != nil {
-		log.Panic(err)
-	}
-
-	err = bot.sendMessages(msg.Chat.ID, msg.Chat.Type, message)
-	if err != nil {
-		log.Panic(err)
-	}
-}
-
-func (bot *Bot) handleRankSearch(msg *qqbotapi.Message) {
-	_, args := msg.Command()
-	rank, err := strconv.Atoi(args[0])
-	if err != nil {
-		log.Panic(err)
-	}
-
-	clan, updateTime, err := kyoka.GetByRank(rank)
-	if err != nil {
-		log.Panic(err)
-	}
-
-	message := cqcode.NewMessage()
-
-	str := fmt.Sprintf("第%d名 %s 会长 %s 分数 %d", clan.Rank, clan.ClanName, clan.LeaderName, clan.Damage)
-	err = message.Append(&cqcode.Text{Text: str + "\n"})
-	if err != nil {
-		log.Panic(err)
-	}
-
-	err = message.Append(&cqcode.Text{Text: "更新时间 " + updateTime.Format("2006-01-02 15:04:05")})
-	if err != nil {
-		log.Panic(err)
-	}
-
-	err = bot.sendMessages(msg.Chat.ID, msg.Chat.Type, message)
+	_, err := bot.api.SendMessage(msg.Chat.ID, msg.Chat.Type, message)
 	if err != nil {
 		log.Panic(err)
 	}

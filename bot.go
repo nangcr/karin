@@ -2,31 +2,25 @@ package main
 
 import (
 	"log"
-	"strings"
 
 	"github.com/catsworld/qq-bot-api"
 	"github.com/go-redis/redis/v8"
-	"github.com/nangcr/kyoka-tentacle"
 )
 
-var kyoka *kyokatentacle.API
+var skill map[string]int
 
 func init() {
-	var err error
-	kyoka, err = kyokatentacle.NewAPI()
-	if err != nil {
-		checkError(err)
-	}
+	skill = map[string]int{"闪耀": 300, "死炎法": 290, "煞星": 2000, "法令": 400, "苦难之心": 900, "崩石": 100000}
 }
 
 type Bot struct {
 	api        *qqbotapi.BotAPI
 	db         *redis.Client
-	allowGroup int64
+	allowGroup []int64
 	updates    <-chan qqbotapi.Update
 }
 
-func NewBot(api *qqbotapi.BotAPI, db *redis.Client, allowGroup int64) (bot *Bot, err error) {
+func NewBot(api *qqbotapi.BotAPI, db *redis.Client, allowGroup []int64) (bot *Bot, err error) {
 	bot = &Bot{
 		api:        api,
 		db:         db,
@@ -55,65 +49,41 @@ func (bot *Bot) processUpdate(update *qqbotapi.Update) {
 	}()
 
 	msg := update.Message
-	if msg != nil && (msg.Chat.IsPrivate() || (msg.Chat.IsGroup() && msg.Chat.ID == bot.allowGroup)) && strings.HasPrefix(msg.Text, "/") {
+	if msg != nil && (msg.Chat.IsPrivate() || (msg.Chat.IsGroup() && inIntSlice(bot.allowGroup, msg.Chat.ID))) {
 		log.Printf("[%s] %s", msg.From.String(), msg.Text)
 
 		cmd, _ := msg.Command()
-		if cmd == "/帮助" || cmd == "/help" {
+		if cmd == "帮助" || cmd == "help" {
 			bot.handleHelp(msg)
 		}
-		if cmd == "/复读" {
+		if cmd == "复读" {
 			bot.handleRepeat(msg)
 		}
-		if cmd == "/ping" {
+		if cmd == "ping" {
 			bot.handlePing(msg)
 		}
-		if cmd == "/存轴" {
+		if cmd == "存轴" {
 			bot.handleTimelineSave(msg)
 		}
-		if cmd == "/查轴" {
+		if cmd == "查轴" {
 			bot.handleTimelineSearch(msg)
 		}
-		if cmd == "/删轴" {
+		if cmd == "删轴" {
 			bot.handleTimelineDelete(msg)
 		}
-		if cmd == "/查线" {
-			go func() {
-				defer func() {
-					if r := recover(); r != nil {
-						log.Printf("Fatal: %+v\n", r)
-					}
-				}()
-				bot.handleClanLine(msg)
-			}()
+		if cmd == "大西瓜" {
+			bot.handleReplyString(msg, "http://www.wesane.com/game/654")
 		}
-		if cmd == "/查公会" {
-			go func() {
-				defer func() {
-					if r := recover(); r != nil {
-						log.Printf("Fatal: %+v\n", r)
-					}
-				}()
-				bot.handleClanSearch(msg)
-			}()
+		if cmd == "大百合" {
+			bot.handleReplyString(msg, "http://192.144.170.228:12450/")
 		}
-		if cmd == "/查排名" {
-			go func() {
-				defer func() {
-					if r := recover(); r != nil {
-						log.Printf("Fatal: %+v\n", r)
-					}
-				}()
-				bot.handleRankSearch(msg)
-			}()
+		if cmd == "魔塔" {
+			bot.handleReplyString(msg, "https://h5mota.com/")
+		}
+		if potency, ok := skill[cmd]; ok {
+			bot.handleDamage(msg, potency)
 		}
 	}
-}
-
-func (bot *Bot) sendMessages(chatID int64, chatType string, message interface{}) (err error) {
-	_, err = bot.api.SendMessage(chatID, chatType, message)
-
-	return
 }
 
 func (bot *Bot) saveData(tag, key string, value interface{}) (err error) {
@@ -134,4 +104,14 @@ func (bot *Bot) searchData(tag string) (result []string, err error) {
 func (bot *Bot) deleteData(tag, key string) (result int64, err error) {
 	result, err = bot.db.Del(ctx, tag+":"+key).Result()
 	return
+}
+
+func inIntSlice(haystack []int64, needle int64) bool {
+	for _, e := range haystack {
+		if e == needle {
+			return true
+		}
+	}
+
+	return false
 }
